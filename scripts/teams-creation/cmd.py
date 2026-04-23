@@ -32,8 +32,8 @@ def __fetch_teams(access_token: str) -> dict[str, str]:
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
 
-def __check_if_team_exists(team_name: str) -> bool:
-    teams = __fetch_teams()
+def __check_if_team_exists(team_name: str, access_token: str) -> bool:
+    teams = __fetch_teams(access_token)
     return any(team["displayName"] == team_name for team in teams["value"])
 
 def run(app, script, params: dict[str, str]) -> dict[str, str]:
@@ -117,7 +117,7 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         app.notify(success_message)
     print(success_message)
 
-    if __check_if_team_exists(params["team_name"]):
+    if __check_if_team_exists(params["team_name"], auth_result.access_token):
         return {"text": "Team already exists"}
 
 
