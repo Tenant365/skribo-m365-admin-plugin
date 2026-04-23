@@ -36,6 +36,31 @@ def __check_if_team_exists(team_name: str, access_token: str) -> bool:
     teams = __fetch_teams(access_token)
     return any(team["displayName"] == team_name for team in teams["value"])
 
+def __create_team(team_name: str, access_token: str, user_id: str) -> dict[str, str]:
+    request = urllib.request.Request(
+        "https://graph.microsoft.com/v1.0/teams",
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="POST",
+        data=json.dumps({
+            "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
+            "displayName": team_name,
+            "description": "Team",
+            "visibility": "private",
+            "members":[
+                {
+                    "@odata.type":"#microsoft.graph.aadUserConversationMember",
+                    "roles":[
+                        "owner"
+                    ],
+                    "user@odata.bind":"https://graph.microsoft.com/v1.0/users('{user_id}')"
+                }
+            ]
+        }).encode("utf-8"),
+    )
+
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
 def run(app, script, params: dict[str, str]) -> dict[str, str]:
     is_script_mode = app is None
 
@@ -125,8 +150,9 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
     if __check_if_team_exists(params["team_name"], access_token):
         return {"text": "Team already exists"}
 
+    __create_team(params["team_name"], access_token, me_data["id"])
 
-    return {"text": "Team does not exist"}
+    return {"text": "Team created successfully"}
 
 if __name__ == "__main__":
     run(None, None, {})
