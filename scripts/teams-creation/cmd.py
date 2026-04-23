@@ -39,7 +39,7 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         if app:
             app.notify("Checking existing access token...")
         try:
-            me_data = _fetch_me(existing_token)
+            me_data = __fetch_me(existing_token)
         except urllib.error.HTTPError as exc:
             if exc.code in (401, 403):
                 # Stored token is no longer valid/usable for Graph /me.
@@ -67,7 +67,7 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         try:
             auth_result = authenticate_with_microsoft_common(
                 show_auth_url=is_script_mode,
-                require_browser_confirmation=is_script_mode,
+                require_browser_confirmation=False,
             )
         except AuthError as exc:
             message = f"Authentication failed: {exc}"
