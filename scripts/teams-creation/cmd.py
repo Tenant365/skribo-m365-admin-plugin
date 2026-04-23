@@ -48,6 +48,7 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         return {"text": message}
 
     me_data = None
+    access_token = existing_token
 
     if existing_token:
         if app:
@@ -98,7 +99,8 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         if app:
             app.notify("Authentication successful. Testing Microsoft Graph /me...")
         try:
-            me_data = __fetch_me(auth_result.access_token)
+            access_token = auth_result.access_token
+            me_data = __fetch_me(access_token)
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             message = f"/me request failed (HTTP {exc.code}): {body}"
@@ -117,7 +119,10 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
         app.notify(success_message)
     print(success_message)
 
-    if __check_if_team_exists(params["team_name"], auth_result.access_token):
+    if access_token is None:
+        return {"text": "Missing access token after authentication"}
+
+    if __check_if_team_exists(params["team_name"], access_token):
         return {"text": "Team already exists"}
 
 
