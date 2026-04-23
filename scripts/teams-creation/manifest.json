@@ -1,0 +1,22 @@
+{
+  "name": "Microsoft 365 Teams Creation",
+  "description": "Create a new Microsoft 365 Team as Niersberger Team using the Microsoft Graph API",
+  "version": "0.1.0",
+  "repository": "https://github.com/tenant365/skribo-microsoft-365-teams-creation",
+  "params": {
+    "team_name": {
+      "label": "Team Name",
+      "default": null
+    }
+  },
+  "output": [
+    {
+      "key": "team_id",
+      "label": "Team ID"
+    },
+    {
+      "key": "team_name",
+      "label": "Team Name"
+    }
+  ]
+}
