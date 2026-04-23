@@ -24,7 +24,7 @@ def __fetch_me(access_token: str) -> dict[str, str]:
 
 def __fetch_teams(access_token: str) -> dict[str, str]:
     request = urllib.request.Request(
-        "https://graph.microsoft.com/v1.0/teams",
+        "https://graph.microsoft.com/v1.0/me/joinedTeams",
         headers={"Authorization": f"Bearer {access_token}"},
         method="GET",
     )
@@ -37,29 +37,34 @@ def __check_if_team_exists(team_name: str, access_token: str) -> bool:
     return any(team["displayName"] == team_name for team in teams["value"])
 
 def __create_team(team_name: str, access_token: str, user_id: str) -> dict[str, str]:
+    payload = {
+        "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
+        "displayName": team_name,
+        "description": "Team",
+        "visibility": "private",
+        "members": [
+            {
+                "@odata.type": "#microsoft.graph.aadUserConversationMember",
+                "roles": ["owner"],
+                "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{user_id}')",
+            }
+        ],
+    }
     request = urllib.request.Request(
         "https://graph.microsoft.com/v1.0/teams",
-        headers={"Authorization": f"Bearer {access_token}"},
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
         method="POST",
-        data=json.dumps({
-            "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
-            "displayName": team_name,
-            "description": "Team",
-            "visibility": "private",
-            "members":[
-                {
-                    "@odata.type":"#microsoft.graph.aadUserConversationMember",
-                    "roles":[
-                        "owner"
-                    ],
-                    "user@odata.bind":"https://graph.microsoft.com/v1.0/users('{user_id}')"
-                }
-            ]
-        }).encode("utf-8"),
+        data=json.dumps(payload).encode("utf-8"),
     )
 
     with urllib.request.urlopen(request, timeout=30) as response:
-        return json.loads(response.read().decode("utf-8"))
+        body = response.read().decode("utf-8")
+        if not body:
+            return {}
+        return json.loads(body)
 
 def run(app, script, params: dict[str, str]) -> dict[str, str]:
     is_script_mode = app is None
@@ -147,10 +152,34 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
     if access_token is None:
         return {"text": "Missing access token after authentication"}
 
-    if __check_if_team_exists(params["team_name"], access_token):
-        return {"text": "Team already exists"}
+    try:
+        if __check_if_team_exists(params["team_name"], access_token):
+            return {"text": "Team already exists"}
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        message = f"/me/joinedTeams request failed (HTTP {exc.code}): {body}"
+        if app:
+            app.notify(message)
+        return {"text": message}
+    except Exception as exc:
+        message = f"/me/joinedTeams request failed: {exc}"
+        if app:
+            app.notify(message)
+        return {"text": message}
 
-    __create_team(params["team_name"], access_token, me_data["id"])
+    try:
+        __create_team(params["team_name"], access_token, me_data["id"])
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        message = f"Team creation failed (HTTP {exc.code}): {body}"
+        if app:
+            app.notify(message)
+        return {"text": message}
+    except Exception as exc:
+        message = f"Team creation failed: {exc}"
+        if app:
+            app.notify(message)
+        return {"text": message}
 
     return {"text": "Team created successfully"}
 
