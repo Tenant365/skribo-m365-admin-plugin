@@ -1,131 +1,86 @@
-# Skribo - Microsoft 365 Teams Creation
+# Skribo - Microsoft 365 Administration
 
-This folder is a ready-to-copy starter template for Skribo plugins.
+This repository contains a Skribo plugin for Microsoft 365 administration tasks.
 
-You can move this folder into your plugin directory (for example `~/.t365/skribo/plugins/`) and then customize it.
+The current implementation focuses on Microsoft Teams creation and related Microsoft Graph authentication.
 
-## Folder Structure
+## Project Structure
 
 ```text
-starter-template/
+m365-teams-creation/
 ├── config.json
 └── scripts/
-    ├── hello-world/
-    │   ├── manifest.json
-    │   └── cmd.py
-    ├── hello-shell/
-    │   ├── manifest.json
-    │   └── cmd.sh
-    └── hello-pwsh/
-        ├── manifest.json
-        └── cmd.ps1
+    └── teams-creation/
+        ├── auth.py
+        ├── cmd.py
+        └── manifest.json
 ```
-
----
 
 ## Plugin Metadata (`config.json`)
 
-Each plugin must have a top-level `config.json`.
-
-Example:
+Top-level plugin metadata:
 
 ```json
 {
-  "name": "starter-plugin-template",
+  "name": "Microsoft 365 Administration",
   "author": "Tenant365",
   "version": "0.0.1"
 }
 ```
 
----
+## Included Script (`scripts/teams-creation`)
 
-## Script Metadata (`scripts/<script>/manifest.json`)
+The script metadata is defined in `scripts/teams-creation/manifest.json`.
 
-Each script must have its own `manifest.json`.
+Current configuration:
 
-Important fields:
+- `name`: `Microsoft 365 Teams Creation`
+- `description`: creates a new Microsoft 365 Team using Microsoft Graph API
+- `params`:
+  - `team_name` (Team Name)
+- `output`:
+  - `team_id`
+  - `team_name`
 
-- `name`: script display name
-- `description`: short explanation
-- `version`: script version
-- `params`: UI form fields shown in Workspace
-- `output`: output keys for structured output scripts
+## Authentication
 
----
+Authentication is implemented in `scripts/teams-creation/auth.py` using OAuth2 Authorization Code Flow with PKCE.
 
-## Supported Entrypoints
+Key details:
 
-In each script folder, Skribo resolves entrypoints in this order:
+- Uses Microsoft identity platform (`organizations` tenant)
+- Opens a browser for interactive login
+- Uses a localhost callback (`http://localhost:8765/callback`)
+- Stores the access token in secure local storage (`keyring` on macOS/Windows)
+- Reuses existing token when available
 
-1. `cmd.py`
-2. `cmd.sh`
-3. `cmd.ps1`
+## Script Runtime (`cmd.py`)
 
-### Runtime visibility rules
-
-- `cmd.py`: always supported
-- `cmd.sh`: shown on Linux/macOS
-- `cmd.ps1`: shown on Windows, and on Linux/macOS only if `pwsh` is installed
-
----
-
-## Parameter Passing
-
-For `cmd.py`:
-
-- Skribo calls `run(app, script, params)`
-- `params` is a Python dictionary
-
-For `cmd.sh` / `cmd.ps1`, Skribo passes params via:
-
-- `SKRIBO_PARAMS_JSON` (JSON string)
-- `SKRIBO_PARAM_<KEY>` (env vars)
-- CLI args:
-  - `--skribo-params-json <json>`
-  - `--<param-name> <value>`
-
----
-
-## Python Script Contract (`cmd.py`)
-
-Expected function signature:
+The script entrypoint is:
 
 ```python
-def run(app, script, params: dict[str, str]) -> dict:
+def run(app, script, params: dict[str, str]) -> dict[str, str]:
     ...
 ```
 
-Return:
+Behavior:
 
-- A dictionary for structured output (displayed in output popup table)
+- validates or refreshes authentication state
+- calls Microsoft Graph `/me` to verify access
+- returns structured output for Skribo
 
----
+## Usage in Skribo
 
-## Console Script Output (`cmd.sh` / `cmd.ps1`)
-
-Console stdout/stderr is captured and shown as console output popup.
-
-Use normal print/write commands:
-
-- Bash: `echo`
-- PowerShell: `Write-Output`
-
----
-
-## Developer Workflow
-
-1. Copy/rename this template folder.
-2. Update `config.json`.
-3. Create or rename scripts under `scripts/`.
-4. Define `manifest.json` and script entrypoint.
-5. Install plugin in Skribo Plugin Manager.
-6. Enable script if needed.
-7. Select script in workspace and run with `Shift+Enter`.
-
----
+1. Install or copy this plugin folder to your Skribo plugins directory.
+2. Ensure Python dependencies are installed (for example `keyring` where required).
+3. Open Skribo Workspace.
+4. Select the `Microsoft 365 Teams Creation` script.
+5. Fill in required parameters (for example `Team Name`).
+6. Run the script (`Shift+Enter`).
+7. Complete browser sign-in when prompted.
 
 ## Notes
 
-- Keep all plugin source in English.
-- Keep script names stable to avoid config mapping issues.
-- Prefer explicit parameter defaults in `manifest.json`.
+- Keep script and metadata fields in English.
+- Keep script folder names stable to avoid mapping issues.
+- Extend this plugin by adding more scripts under `scripts/` for additional Microsoft 365 administration tasks.
