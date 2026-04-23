@@ -22,6 +22,20 @@ def __fetch_me(access_token: str) -> dict[str, str]:
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
 
+def __fetch_teams(access_token: str) -> dict[str, str]:
+    request = urllib.request.Request(
+        "https://graph.microsoft.com/v1.0/teams",
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="GET",
+    )
+
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+def __check_if_team_exists(team_name: str) -> bool:
+    teams = __fetch_teams()
+    return any(team["displayName"] == team_name for team in teams["value"])
+
 def run(app, script, params: dict[str, str]) -> dict[str, str]:
     is_script_mode = app is None
 
@@ -102,7 +116,12 @@ def run(app, script, params: dict[str, str]) -> dict[str, str]:
     if app:
         app.notify(success_message)
     print(success_message)
-    return {"text": success_message}
+
+    if __check_if_team_exists(params["team_name"]):
+        return {"text": "Team already exists"}
+
+
+    return {"text": "Team does not exist"}
 
 if __name__ == "__main__":
     run(None, None, {})
